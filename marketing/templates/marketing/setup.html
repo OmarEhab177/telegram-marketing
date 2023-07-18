@@ -1,0 +1,40 @@
+{% extends 'marketing/base.html' %}
+
+{% block content %}
+    <div class="container">
+        <div>
+            {% if message %}
+                <p class="alert alert-warning">{{ message }}</p>
+            {% endif %}
+        </div>
+        <h1 class="text-center">Login</h1>
+        <form class="form-style" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="user_name">User Name</label>
+                <input type="text" class="form-control" id="user_name" name="user_name" placeholder="Enter user name">
+            </div>
+
+            <div class="form-group">
+                <label for="phone_number">Phone Number</label>
+                <input type="text" class="form-control" id="phone_number" name="phone_number" placeholder="Enter phone number">
+            </div>
+
+            <div class="form-group">
+                <label for="api_id">API ID</label>
+                <input type="text" class="form-control" id="api_id" name="api_id" placeholder="Enter API ID">
+            </div>
+
+
+            <div class="form-group">
+                <label for="api_hash">API Hash</label>
+                <input type="text" class="form-control" id="api_hash" name="api_hash" placeholder="Enter API Hash">
+            </div>
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <br>
+            {{request.user}}
+            <a href="{% url 'marketing:dashboard' %}">Dashboard</a>
+        </form>
+    </div>
+{% endblock %}

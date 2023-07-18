@@ -1,0 +1,113 @@
+{% extends 'marketing/base.html' %}
+
+{% block content %}
+<div class="container">
+<h1>Accounts</h1>
+<table>
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Phone Number</th>
+            <th>Actions</th>
+            <!-- Add more table headers for other statistics -->
+        </tr>
+    </thead>
+    <tbody>
+        {% for account in accounts %}
+        <tr>
+            <td>{{ account.username }}</td>
+            <td>{{ account.phone_number }}</td>
+            <td>
+                <form method="POST" action="{% url 'marketing:login-number' account.phone_number %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+            </td>
+            <td>
+                <form method="POST" action="{% url 'marketing:get-channels' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="phone_number" value="{{ account.phone_number }}">
+                    <button type="submit" class="btn btn-primary">Get Channels</button>
+                </form>
+            </td>
+            <!-- Add more table cells for other statistics -->
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<!-- Pagination links -->
+<div class="pagination">
+    {% if accounts.has_previous %}
+    <a href="?acc_page={{ accounts.previous_page_number }}">Previous</a>
+    {% endif %}
+    <span class="current-page">{{ accounts.number }}</span>
+    {% if accounts.has_next %}
+    <a href="?acc_page={{ accounts.next_page_number }}">Next</a>
+    {% endif %}
+</div>
+</div>
+
+<div class="container">
+    <h1>Channels</h1>
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:create-channel' %}">
+        {% csrf_token %}
+        <label>Create Channel</label>
+        <br>
+        <input type="text" style="width: 200px" id="phone_number" name="phone_number" placeholder="Phone Number">
+        <br>
+        <input type="text" style="width: 200px" name="channel_name" placeholder="Channel Name">
+        <br>
+        <button type="submit" style="width: 200px">Create Channel</button>
+    </form>
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" >
+        <label>Get member from channel by Id</label>
+        <br>
+        <input type="text" style="width: 200px" name="channel_id" placeholder="Channel Id">
+        <br>
+        <button type="submit" style="width: 200px">Get Members</button>
+    </form>
+    <table>
+        <thead>
+            <tr>
+                <th>Channel ID</th>
+                <th>Title</th>
+                <th>Name</th>
+                <th>Is Channel</th>
+                <th>Is Group</th>
+                <th>Actions</th>
+                <!-- Add more table headers for other statistics -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for channel in channels %}
+            <tr>
+                <td>{{ channel.channel_id }}</td>
+                <td>{{ channel.title }}</td>
+                <td>{{ channel.name }}</td>
+                <td>{{ channel.is_channel }}</td>
+                <td>{{ channel.is_group }}</td>
+                <td>
+                    <form method="POST" action="{% url 'marketing:get-members' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
+                        <button type="submit" class="btn btn-primary">Get Members</button>
+                    </form>
+                </td>
+                <!-- Add more table cells for other statistics -->
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <!-- Pagination links -->
+    <div class="pagination">
+        {% if channels.has_previous %}
+        <a href="?channel_page={{ channels.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span class="current-page">{{ channels.number }}</span>
+        {% if channels.has_next %}
+        <a href="?channel_page={{ channels.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
