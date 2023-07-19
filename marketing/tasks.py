@@ -1,9 +1,13 @@
+import time
 from celery import shared_task
+
 from telethon.sync import TelegramClient
 from telethon.errors import ChatAdminRequiredError, SessionPasswordNeededError
-from telethon.errors.rpcerrorlist import PasswordHashInvalidError
-from telethon.tl.types import InputPeerChannel
-from telethon.tl.functions.channels import CreateChannelRequest
+from telethon.errors.rpcerrorlist import PasswordHashInvalidError, UserIdInvalidError
+from telethon.tl.types import InputPeerChannel, InputPeerUser, PeerChannel
+from telethon.tl.functions.channels import CreateChannelRequest, InviteToChannelRequest, JoinChannelRequest, GetFullChannelRequest
+from telethon.tl.functions.messages import SendMessageRequest
+
 from config.celery import app
 from django.db import OperationalError
 
@@ -124,8 +128,7 @@ def task_create_channel(phone_number, api_hash, api_id, channel_name):
     client = TelegramClient(phone_number, api_id, api_hash)
     client.connect()
     try:
-        result = client(CreateChannelRequest(channel_name, channel_name, megagroup=False))
-        print(result.__dict__)
+        result = client(CreateChannelRequest(channel_name, channel_name, megagroup=True))
         channel = {
             'id': result.chats[0].id,
         }
@@ -150,3 +153,54 @@ def task_logout(phone_number, api_hash, api_id):
     finally:
         client.disconnect()
 
+
+
+@shared_task
+def task_invite_members(phone_number, api_hash, api_id, channel_id, members_ids):
+    client = TelegramClient(phone_number, api_id, api_hash)
+    client.connect()
+    try:
+
+        for member_id in members_ids:
+            try:
+                member_to_invite = InputPeerUser(user_id=int(member_id), access_hash=0)
+                client(InviteToChannelRequest(int(channel_id), [member_to_invite]))
+                time.sleep(12)
+                return True
+            except UserIdInvalidError:
+                # Can not invite this user
+                pass
+    except (ConnectionError, OperationalError):
+        restart_celery_worker.apply_async(countdown=5)
+    finally:
+        client.disconnect()
+
+
+@shared_task
+def send_message_to_channel(phone_number, api_hash, api_id, channel_id, message):
+    client = TelegramClient(phone_number, api_id, api_hash)
+    client.connect()
+    try:
+        client(SendMessageRequest(
+            peer=int(channel_id),
+            message=message
+        ))
+        return True
+    except (ConnectionError, OperationalError):
+        restart_celery_worker.apply_async(countdown=5)
+    finally:
+        client.disconnect()
+
+
+@shared_task
+def task_request_to_join_channel(phone_number, api_hash, api_id, channel_id):
+    client = TelegramClient(phone_number, api_id, api_hash)
+    client.connect()
+    try:
+        input_channel = PeerChannel(int(channel_id))
+        client(JoinChannelRequest(input_channel))
+        return True
+    except (ConnectionError, OperationalError):
+        restart_celery_worker.apply_async(countdown=5)
+    finally:
+        client.disconnect()

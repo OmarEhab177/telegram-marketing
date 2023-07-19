@@ -14,7 +14,9 @@ from .tasks import (
     get_all_channels,
     get_channels_participants,
     task_create_channel,
-    get_channel_info,
+    task_invite_members,
+    send_message_to_channel,
+    task_request_to_join_channel
 )
 
 
@@ -297,3 +299,74 @@ def create_channel(request):
             # TODO: return message show that the channel is not created
             return redirect("marketing:dashboard")
 
+def invite_members_to_channel(request):
+    if request.method == "POST":
+        channel_id = request.POST.get("channel_id")
+        telegram_account = TelegramAccount.objects.filter(username=request.user.username).first()
+        if int(channel_id) not in telegram_account.channels.all().values_list("channel_id", flat=True):
+            # TODO: message that the logged in user in not the owner of the channel
+            return redirect("marketing:dashboard")
+        # get all members ids
+        members_ids = Member.objects.all().values_list("member_id", flat=True)
+        members_ids = list(members_ids)
+        result = task_invite_members.apply_async(
+            args=[
+                telegram_account.phone_number,
+                telegram_account.api_hash,
+                telegram_account.api_id,
+                channel_id,
+                members_ids
+            ]
+        )
+        task_result = app.AsyncResult(result.task_id).get()
+
+        if task_result:
+            # sucess message that members are invited
+            return redirect("marketing:dashboard")
+        return redirect("marketing:dashboard")
+
+
+def send_message(request, channel_id):
+    if request.method == "POST":
+        message = request.POST.get('message')
+        telegram_account = Channel.objects.get(channel_id=channel_id).telegram_account
+        result = send_message_to_channel.apply_async(
+            args=[
+                telegram_account.phone_number,
+                telegram_account.api_hash,
+                telegram_account.api_id,
+                channel_id,
+                message,
+            ]
+        )
+        task_result = app.AsyncResult(result.task_id).get()
+        if task_result:
+            # TODO: message that the message is sent successfully
+            return redirect("marketing:dashboard")
+        else:
+            # TODO: message that the message is not sent
+            return redirect("marketing:send-message", channel_id=channel_id)
+
+    return render(request, 'marketing/send-message.html', {'channel_id': channel_id})
+
+def request_to_join_channel(request):
+    # Not implemented yet
+    if request.method == "POST":
+        channel_id = request.POST.get("channel_id")
+        telegram_account = TelegramAccount.objects.filter(username=request.user.username).first()
+        task = task_request_to_join_channel.apply_async(
+            args=[
+                telegram_account.phone_number,
+                telegram_account.api_hash,
+                telegram_account.api_id,
+                channel_id,
+            ]
+        )
+        task_result = app.AsyncResult(task.task_id).get()
+        if task_result:
+            telegram_account.channels.add(Channel.objects.get(channel_id=channel_id))
+            # TODO: message that the request is sent successfully
+            return redirect("marketing:dashboard")
+        else:
+            # TODO: message that the request is not sent
+            return redirect("marketing:dashboard")

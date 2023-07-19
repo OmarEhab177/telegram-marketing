@@ -1,0 +1,13 @@
+{% extends 'marketing/base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Send Message to Channel {{channel_id}}</h1>
+    <form class="form-style" method="POST" action="{% url 'marketing:send-message' channel_id %}">
+        {% csrf_token %}
+        <textarea id="message" name="message" required placeholder="Enter your message here..."></textarea>
+
+        <button type="submit">Send</button>
+    </form>
+</div>
+{% endblock %}

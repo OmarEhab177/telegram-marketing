@@ -9,7 +9,6 @@
             <th>Username</th>
             <th>Phone Number</th>
             <th>Actions</th>
-            <!-- Add more table headers for other statistics -->
         </tr>
     </thead>
     <tbody>
@@ -38,7 +37,6 @@
                 </form>
                 {% endif %}
             </td>
-            <!-- Add more table cells for other statistics -->
         </tr>
         {% endfor %}
     </tbody>
@@ -60,19 +58,27 @@
     <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:create-channel' %}">
         {% csrf_token %}
         <label>Create Channel</label>
-        <br>
-        <input type="text" style="width: 200px" id="phone_number" name="phone_number" placeholder="Phone Number">
+        <input type="hidden" style="width: 200px" id="phone_number" name="phone_number" value="{{ request.user.telegramaccount.phone_number }}">
         <br>
         <input type="text" style="width: 200px" name="channel_name" placeholder="Channel Name">
         <br>
         <button type="submit" style="width: 200px">Create Channel</button>
     </form>
     <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:get-members' %}">
+        {% csrf_token %}
         <label>Get member from channel by Id</label>
         <br>
         <input type="text" style="width: 200px" name="channel_id" placeholder="Channel Id">
         <br>
         <button type="submit" style="width: 200px">Get Members</button>
+    </form>
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:invite-members' %}">
+        {% csrf_token %}
+        <label>Invite members to channel</label>
+        <br>
+        <input type="text" style="width: 200px" name="channel_id" placeholder="Channel Id">
+        <br>
+        <button type="submit" style="width: 200px">Invite Members</button>
     </form>
     <table>
         <thead>
@@ -84,7 +90,6 @@
                 <th>Is Group</th>
                 <th>Members count</th>
                 <th>Actions</th>
-                <!-- Add more table headers for other statistics -->
             </tr>
         </thead>
         <tbody>
@@ -108,6 +113,10 @@
                             {% csrf_token %}
                             <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
                             <button type="submit" class="btn btn-primary">Get Members</button>
+                        </form>
+                        <br>
+                        <form method="GET" action="{% url 'marketing:send-message' channel.channel_id %}">
+                            <button type="submit" class="btn btn-primary">Send Message</button>
                         </form>
                     </td>
                 </tr>
@@ -135,13 +144,14 @@
                     <td>{{ channel.is_channel }}</td>
                     <td>{{ channel.is_group }}</td>
                     <td>{{ channel.members.count }}</td>
-                    <td>
-                        <form method="POST" action="{% url 'marketing:get-members' %}">
+                    <!-- TODO: add here request to join channel -->
+                    <!-- <td>
+                        <form method="POST" action="{% url 'marketing:request-join' %}">
                             {% csrf_token %}
                             <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
-                            <button type="submit" class="btn btn-primary">Get Members</button>
+                            <button type="submit" class="btn btn-primary">Request to join</button>
                         </form>
-                    </td>
+                    </td> -->
                 </tr>
                 {% endfor %}
             {% else %}
