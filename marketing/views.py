@@ -161,7 +161,7 @@ def logout_view(request):
     else:
         return HttpResponse("Method not allowed")
 
-
+@login_required(login_url="marketing:setup")
 def get_channels(request):
     if request.method == "POST":
         phone_number = request.POST.get("phone_number")
@@ -201,25 +201,25 @@ def get_members(request):
         channel = Channel.objects.filter(channel_id=channel_id).first()
         telegram_account = TelegramAccount.objects.filter(username=request.user.username).first()
 
-        if not channel:
-            chanel_result = get_channel_info.apply_async(
-                args=[
-                    telegram_account.phone_number,
-                    telegram_account.api_hash,
-                    telegram_account.api_id,
-                    channel_id,
-                ]
-            )
-            channel_task_result = app.AsyncResult(chanel_result.task_id).get()
-            if channel_task_result:
-                channel = Channel.objects.create(
-                    channel_id=channel_task_result["id"],
-                    title=channel_task_result["title"],
-                    name=channel_task_result["name"],
-                    is_channel=channel_task_result["is_channel"],
-                    is_group=channel_task_result["is_group"],
-                    telegram_account=telegram_account,
-                )
+        # if not channel:
+        #     chanel_result = get_channel_info.apply_async(
+        #         args=[
+        #             telegram_account.phone_number,
+        #             telegram_account.api_hash,
+        #             telegram_account.api_id,
+        #             channel_id,
+        #         ]
+        #     )
+        #     channel_task_result = app.AsyncResult(chanel_result.task_id).get()
+        #     if channel_task_result:
+        #         channel = Channel.objects.create(
+        #             channel_id=channel_task_result["id"],
+        #             title=channel_task_result["title"],
+        #             name=channel_task_result["name"],
+        #             is_channel=channel_task_result["is_channel"],
+        #             is_group=channel_task_result["is_group"],
+        #             telegram_account=telegram_account,
+        #         )
 
 
         result = get_channels_participants.apply_async(
