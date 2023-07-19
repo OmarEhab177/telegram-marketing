@@ -19,14 +19,6 @@ from .tasks import (
     task_request_to_join_channel
 )
 
-
-api_id = "27322072"
-api_hash = "9c92ebde176ac90817d3a8d5f73046a6"
-
-
-api_id = "23470900"
-api_hash = "23d8a37e907a7176679386a1c0e22c97"
-
 def setup(request):
     if request.method == "POST":
         # retreive data from form
