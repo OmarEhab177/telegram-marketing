@@ -18,17 +18,25 @@
             <td>{{ account.username }}</td>
             <td>{{ account.phone_number }}</td>
             <td>
-                <form method="POST" action="{% url 'marketing:login-number' account.phone_number %}">
+                {% if request.user.username != account.username %}
+                <form method="GET" action="{% url 'marketing:setup' %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-primary">Login</button>
                 </form>
-            </td>
-            <td>
+                {% else %}
+                <form method="POST" action="{% url 'marketing:logout'%}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Logout</button>
+                </form>
+                {% endif %}
+                <br>
+                {% if request.user.username == account.username %}
                 <form method="POST" action="{% url 'marketing:get-channels' %}">
                     {% csrf_token %}
                     <input type="hidden" name="phone_number" value="{{ account.phone_number }}">
                     <button type="submit" class="btn btn-primary">Get Channels</button>
                 </form>
+                {% endif %}
             </td>
             <!-- Add more table cells for other statistics -->
         </tr>
@@ -59,7 +67,7 @@
         <br>
         <button type="submit" style="width: 200px">Create Channel</button>
     </form>
-    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" >
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:get-members' %}">
         <label>Get member from channel by Id</label>
         <br>
         <input type="text" style="width: 200px" name="channel_id" placeholder="Channel Id">
@@ -74,38 +82,99 @@
                 <th>Name</th>
                 <th>Is Channel</th>
                 <th>Is Group</th>
+                <th>Members count</th>
                 <th>Actions</th>
                 <!-- Add more table headers for other statistics -->
             </tr>
         </thead>
         <tbody>
-            {% for channel in channels %}
             <tr>
-                <td>{{ channel.channel_id }}</td>
-                <td>{{ channel.title }}</td>
-                <td>{{ channel.name }}</td>
-                <td>{{ channel.is_channel }}</td>
-                <td>{{ channel.is_group }}</td>
                 <td>
-                    <form method="POST" action="{% url 'marketing:get-members' %}">
-                        {% csrf_token %}
-                        <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
-                        <button type="submit" class="btn btn-primary">Get Members</button>
-                    </form>
+                    <p>{{ request.user.username}}'s Channels</p>
                 </td>
-                <!-- Add more table cells for other statistics -->
             </tr>
-            {% endfor %}
+            <!-- Current user channels -->
+            {% if current_user_channels %}
+                {% for channel in current_user_channels %}
+                <tr>
+                    <td>{{ channel.channel_id }}</td>
+                    <td>{{ channel.title }}</td>
+                    <td>{{ channel.name }}</td>
+                    <td>{{ channel.is_channel }}</td>
+                    <td>{{ channel.is_group }}</td>
+                    <td>{{ channel.members.count }}</td>
+                    <td>
+                        <form method="POST" action="{% url 'marketing:get-members' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
+                            <button type="submit" class="btn btn-primary">Get Members</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+            <tr>
+            <td>
+                <p>There is no channels for user: {{ request.user.username}}</p>
+            </td>
+            </tr>
+            {% endif %}
+            <tr>
+                <td>
+                    <p>Other Channels</p>
+                </td>
+            </tr>
+
+            <!-- All other channels -->
+            {% if channels %}
+                {% for channel in channels %}
+                <tr>
+                    <td>{{ channel.channel_id }}</td>
+                    <td>{{ channel.title }}</td>
+                    <td>{{ channel.name }}</td>
+                    <td>{{ channel.is_channel }}</td>
+                    <td>{{ channel.is_group }}</td>
+                    <td>{{ channel.members.count }}</td>
+                    <td>
+                        <form method="POST" action="{% url 'marketing:get-members' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
+                            <button type="submit" class="btn btn-primary">Get Members</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+            <tr>
+                <td>
+                    <p>There is no other channels</p>
+                </td>
+            </tr>
+            {% endif %}
+
+
         </tbody>
     </table>
     <!-- Pagination links -->
+    <h4>Current User Channels Pagination</h4>
+    <div class="pagination">
+        {% if current_user_channels.has_previous %}
+        <a href="?user_channels_page={{ current_user_channels.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span class="current-page">{{ current_user_channels.number }}</span>
+        {% if current_user_channels.has_next %}
+        <a href="?user_channels_page={{ current_user_channels.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
+    <h4>All Channels Pagination</h4>
+    <!-- Pagination links -->
     <div class="pagination">
         {% if channels.has_previous %}
-        <a href="?channel_page={{ channels.previous_page_number }}">Previous</a>
+        <a href="?channels_page={{ channels.previous_page_number }}">Previous</a>
         {% endif %}
         <span class="current-page">{{ channels.number }}</span>
         {% if channels.has_next %}
-        <a href="?channel_page={{ channels.next_page_number }}">Next</a>
+        <a href="?channels_page={{ channels.next_page_number }}">Next</a>
         {% endif %}
     </div>
 </div>
