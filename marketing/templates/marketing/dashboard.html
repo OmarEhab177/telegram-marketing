@@ -2,69 +2,72 @@
 
 {% block content %}
 <div class="container">
-<h1>Accounts</h1>
-<table>
-    <thead>
-        <tr>
-            <th>Username</th>
-            <th>Phone Number</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for account in accounts %}
-        <tr>
-            <td>{{ account.username }}</td>
-            <td>{{ account.phone_number }}</td>
-            <td>
-                {% if request.user.username != account.username %}
-                <form method="GET" action="{% url 'marketing:setup' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Login</button>
-                </form>
-                {% else %}
-                <form method="POST" action="{% url 'marketing:logout'%}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-primary">Logout</button>
-                </form>
-                {% endif %}
-                <br>
-                {% if request.user.username == account.username %}
-                <form method="POST" action="{% url 'marketing:get-channels' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="phone_number" value="{{ account.phone_number }}">
-                    <button type="submit" class="btn btn-primary">Get Channels</button>
-                </form>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-<!-- Pagination links -->
-<div class="pagination">
-    {% if accounts.has_previous %}
-    <a href="?acc_page={{ accounts.previous_page_number }}">Previous</a>
-    {% endif %}
-    <span class="current-page">{{ accounts.number }}</span>
-    {% if accounts.has_next %}
-    <a href="?acc_page={{ accounts.next_page_number }}">Next</a>
-    {% endif %}
-</div>
+    <h1>Accounts</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Phone Number</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in accounts %}
+            <tr>
+                <td>{{ account.username }}</td>
+                <td>{{ account.phone_number }}</td>
+                <td>
+                    {% if request.user.username != account.username %}
+                    <form method="GET" action="{% url 'marketing:setup' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                    {% else %}
+                    <form method="POST" action="{% url 'marketing:logout'%}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Logout</button>
+                    </form>
+                    {% endif %}
+                    <br>
+                    {% if request.user.username == account.username %}
+                    <form method="POST" action="{% url 'marketing:get-channels' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="phone_number" value="{{ account.phone_number }}">
+                        <button type="submit" class="btn btn-primary">Get Channels</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <!-- Pagination links -->
+    <div class="pagination">
+        {% if accounts.has_previous %}
+        <a href="?acc_page={{ accounts.previous_page_number }}">Previous</a>
+        {% endif %}
+        <span class="current-page">{{ accounts.number }}</span>
+        {% if accounts.has_next %}
+        <a href="?acc_page={{ accounts.next_page_number }}">Next</a>
+        {% endif %}
+    </div>
 </div>
 
 <div class="container">
     <h1>Channels</h1>
-    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:create-channel' %}">
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST"
+        action="{% url 'marketing:create-channel' %}">
         {% csrf_token %}
         <label>Create Channel</label>
-        <input type="hidden" style="width: 200px" id="phone_number" name="phone_number" value="{{ request.user.telegramaccount.phone_number }}">
+        <input type="hidden" style="width: 200px" id="phone_number" name="phone_number"
+            value="{{ request.user.telegramaccount.phone_number }}">
         <br>
         <input type="text" style="width: 200px" name="channel_name" placeholder="Channel Name">
         <br>
         <button type="submit" style="width: 200px">Create Channel</button>
     </form>
-    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:get-members' %}">
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST"
+        action="{% url 'marketing:get-members' %}">
         {% csrf_token %}
         <label>Get member from channel by Id</label>
         <br>
@@ -72,7 +75,8 @@
         <br>
         <button type="submit" style="width: 200px">Get Members</button>
     </form>
-    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST" action="{% url 'marketing:invite-members' %}">
+    <form class="form-style" style="padding: 10px; margin:10px; display: inline-block;" method="POST"
+        action="{% url 'marketing:invite-members' %}">
         {% csrf_token %}
         <label>Invite members to channel</label>
         <br>
@@ -80,6 +84,14 @@
         <br>
         <button type="submit" style="width: 200px">Invite Members</button>
     </form>
+    <!-- <div class="form-style" style="padding: 10px; margin:10px; display: inline-block;">
+        <button type="button" style="width: 300px">
+            <a style="color: White; text-decoration: none;" href="{% url 'marketing:send-message-to-all' %}">Send
+                Message to all Members</a>
+        </button>
+
+    </div> -->
+
     <table>
         <thead>
             <tr>
@@ -100,32 +112,32 @@
             </tr>
             <!-- Current user channels -->
             {% if current_user_channels %}
-                {% for channel in current_user_channels %}
-                <tr>
-                    <td>{{ channel.channel_id }}</td>
-                    <td>{{ channel.title }}</td>
-                    <td>{{ channel.name }}</td>
-                    <td>{{ channel.is_channel }}</td>
-                    <td>{{ channel.is_group }}</td>
-                    <td>{{ channel.members.count }}</td>
-                    <td>
-                        <form method="POST" action="{% url 'marketing:get-members' %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
-                            <button type="submit" class="btn btn-primary">Get Members</button>
-                        </form>
-                        <br>
-                        <form method="GET" action="{% url 'marketing:send-message' channel.channel_id %}">
-                            <button type="submit" class="btn btn-primary">Send Message</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
+            {% for channel in current_user_channels %}
+            <tr>
+                <td>{{ channel.channel_id }}</td>
+                <td>{{ channel.title }}</td>
+                <td>{{ channel.name }}</td>
+                <td>{{ channel.is_channel }}</td>
+                <td>{{ channel.is_group }}</td>
+                <td>{{ channel.members.count }}</td>
+                <td>
+                    <form method="POST" action="{% url 'marketing:get-members' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
+                        <button type="submit" class="btn btn-primary">Get Members</button>
+                    </form>
+                    <br>
+                    <form method="GET" action="{% url 'marketing:send-message' channel.channel_id %}">
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
             {% else %}
             <tr>
-            <td>
-                <p>There is no channels for user: {{ request.user.username}}</p>
-            </td>
+                <td>
+                    <p>There is no channels for user: {{ request.user.username}}</p>
+                </td>
             </tr>
             {% endif %}
             <tr>
@@ -136,24 +148,24 @@
 
             <!-- All other channels -->
             {% if channels %}
-                {% for channel in channels %}
-                <tr>
-                    <td>{{ channel.channel_id }}</td>
-                    <td>{{ channel.title }}</td>
-                    <td>{{ channel.name }}</td>
-                    <td>{{ channel.is_channel }}</td>
-                    <td>{{ channel.is_group }}</td>
-                    <td>{{ channel.members.count }}</td>
-                    <!-- TODO: add here request to join channel -->
-                    <!-- <td>
+            {% for channel in channels %}
+            <tr>
+                <td>{{ channel.channel_id }}</td>
+                <td>{{ channel.title }}</td>
+                <td>{{ channel.name }}</td>
+                <td>{{ channel.is_channel }}</td>
+                <td>{{ channel.is_group }}</td>
+                <td>{{ channel.members.count }}</td>
+                <!-- TODO: add here request to join channel -->
+                <!-- <td>
                         <form method="POST" action="{% url 'marketing:request-join' %}">
                             {% csrf_token %}
                             <input type="hidden" name="channel_id" value="{{ channel.channel_id }}">
                             <button type="submit" class="btn btn-primary">Request to join</button>
                         </form>
                     </td> -->
-                </tr>
-                {% endfor %}
+            </tr>
+            {% endfor %}
             {% else %}
             <tr>
                 <td>
@@ -188,5 +200,14 @@
         {% endif %}
     </div>
 </div>
+{#% if request.session.task_id %}
+<div class="container">
+    <P>Tasks</P>
+      {% for task_id in request.session.task_id %}
+        <p>Task ID: {{ request.session.task_id }}</p>
+        view task status: <a href="{% url 'marketing:task-status' request.session.task_id %}">here</a>
+      {% endfor %}
+</div>
+{% endif %#}
 
 {% endblock %}

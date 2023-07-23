@@ -1,0 +1,15 @@
+{% extends 'marketing/base.html' %}
+
+{% block content %}
+<div class="container">
+    <h1>Send Message to All Members</h1>
+    <p>Please be carefull while using this tool it will send message to all members you have in database</p>
+    <p>You have {{members_count}}</p>
+    <form class="form-style" method="POST" action="{% url 'marketing:send-message-to-all' %}">
+        {% csrf_token %}
+        <label for="message">Message:</label>
+        <textarea name="message" id="message" rows="4" cols="50"></textarea><br>
+        <button type="submit">Send</button>
+    </form>
+</div>
+{% endblock %}

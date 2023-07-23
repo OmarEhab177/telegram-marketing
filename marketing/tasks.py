@@ -153,8 +153,6 @@ def task_logout(phone_number, api_hash, api_id):
     finally:
         client.disconnect()
 
-
-
 @shared_task
 def task_invite_members(phone_number, api_hash, api_id, channel_id, members_ids):
     client = TelegramClient(phone_number, api_id, api_hash)
@@ -174,7 +172,6 @@ def task_invite_members(phone_number, api_hash, api_id, channel_id, members_ids)
         restart_celery_worker.apply_async(countdown=5)
     finally:
         client.disconnect()
-
 
 @shared_task
 def send_message_to_channel(phone_number, api_hash, api_id, channel_id, message):
@@ -202,5 +199,29 @@ def task_request_to_join_channel(phone_number, api_hash, api_id, channel_id):
         return True
     except (ConnectionError, OperationalError):
         restart_celery_worker.apply_async(countdown=5)
+    finally:
+        client.disconnect()
+
+
+@shared_task
+def task_send_message_to_all_members(phone_number, api_hash, api_id, members_ids, message):
+    client = TelegramClient(phone_number, api_id, api_hash)
+    client.connect()
+    try:
+        for member_id in members_ids:
+            try:
+                client(SendMessageRequest(
+                    peer=int(member_id),
+                    message=message
+                ))
+                time.sleep(12)
+                print(f'sent message to member {member_id}')
+                return True
+            except (ConnectionError, OperationalError):
+                print(f'Message not sent to {member_id}')
+                restart_celery_worker.apply_async(countdown=5)
+            except Exception as e:
+                print("exception", e)
+                return False
     finally:
         client.disconnect()

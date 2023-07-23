@@ -15,4 +15,6 @@ urlpatterns = [
     path('invite-members', views.invite_members_to_channel, name='invite-members'),
     path('send-message/<str:channel_id>', views.send_message, name='send-message'),
     path('request-join', views.request_to_join_channel, name='request-join'),
+    path('send-message-to-all', views.send_message_to_all_member, name='send-message-to-all'),
+    path('task-status/<str:task_id>', views.task_status, name='task-status'),
 ]

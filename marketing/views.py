@@ -4,6 +4,7 @@ from django.http import HttpResponse
 from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 from config.celery import app
 from .models import TelegramAccount, Channel, Member
@@ -16,7 +17,8 @@ from .tasks import (
     task_create_channel,
     task_invite_members,
     send_message_to_channel,
-    task_request_to_join_channel
+    task_request_to_join_channel,
+    task_send_message_to_all_members
 )
 
 def setup(request):
@@ -59,12 +61,14 @@ def setup(request):
             user = authenticate(request, username=user_name, password=tele_acc.password)
             if user:
                 login(request, user)
+            messages.success(request, "Account added successfully")
             return render(
                 request,
                 "marketing/setup.html",
                 {"message": "Account added successfully"},
             )
         else:
+            messages.warning(request, "Verify your phone number")
             tele_acc.phone_code_hash = task_result
             tele_acc.save()
             verification_link = reverse("marketing:verification")
@@ -97,19 +101,19 @@ def verification(request):
                 user = authenticate(request, username=telegram_account.username, password=password)
                 if user:
                     login(request, user)
+                messages.success(request, "Account verified successfully")
                 return redirect("marketing:dashboard")
             else:
-                # TODO: return message show that the verification code or password is wrong
+                messages.error(request, "Wrong verification code or password")
                 verification_link = reverse("marketing:verification")
                 verification_link += "?phone_number=" + phone_number
                 return redirect(verification_link)
         else:
-            # TODO: return message show that the account is not found or not added
+            messages.error(request, "Account not found")
             return redirect("marketing:setup")
 
     phone_number = request.GET.get("phone_number")
     return render(request, "marketing/verification.html", {"phone_number": phone_number})
-
 
 @login_required(login_url="marketing:setup")  # Redirect to setup page if the user is not authenticated
 def dashboard(request):
@@ -157,9 +161,11 @@ def logout_view(request):
             task_result = app.AsyncResult(result.task_id).get()
             if task_result:
                 logout(request)
+                messages.success(request, f"Logged out successfully from {tele_acc.phone_number}")
                 return redirect("marketing:setup")
     else:
-        return HttpResponse("Method not allowed")
+        messages.warning(request, "Method not allowed")
+        redirect("marketing:dashboard")
 
 @login_required(login_url="marketing:setup")
 def get_channels(request):
@@ -189,12 +195,11 @@ def get_channels(request):
                             telegram_account=telegram_account,
                         )
             elif task_result == []:
-                # TODO implement message no channel found
-                print("no channel found")
+                messages.warning(request, "No channel found")
                 return redirect("marketing:dashboard")
     return redirect("marketing:dashboard")
 
-
+@login_required(login_url="marketing:setup")
 def get_members(request):
     if request.method == "POST":
         channel_id = request.POST.get("channel_id")
@@ -250,14 +255,13 @@ def get_members(request):
                         member_exist.channels.add(channel)
 
         elif task_result == []:
-            # TODO implement message no member found
-            print("no member found")
+            messages.warning(request, "No member found")
         return redirect("marketing:dashboard")
 
-    # TODO message "method not allowed"
+    messages.warning(request, "Method not allowed")
     redirect("marketing:dashboard")
 
-
+@login_required(login_url="marketing:setup")
 def create_channel(request):
     if request.method == "POST":
         phone_number = request.POST.get("phone_number")
@@ -265,7 +269,7 @@ def create_channel(request):
         phone_number = phone_number if phone_number[0] == "+" else"+" + phone_number.strip()
         tele_acc = TelegramAccount.objects.filter(phone_number=phone_number).first()
         if not tele_acc:
-            # TODO message "account with this phone number not found"
+            messages.warning(request, f"Account with this phone number {phone_number} not found")
             return redirect("marketing:dashboard")
 
         result = task_create_channel.apply_async(
@@ -285,18 +289,19 @@ def create_channel(request):
                 is_channel=True,
                 telegram_account=tele_acc,
             )
-            # TODO: return message show that the channel is created successfully
+            messages.success(request, f"Channel {channel_name} created successfully")
             return redirect("marketing:dashboard")
         else:
-            # TODO: return message show that the channel is not created
+            messages.error(request, f"Channel {channel_name} not created")
             return redirect("marketing:dashboard")
 
+@login_required(login_url="marketing:setup")
 def invite_members_to_channel(request):
     if request.method == "POST":
         channel_id = request.POST.get("channel_id")
         telegram_account = TelegramAccount.objects.filter(username=request.user.username).first()
         if int(channel_id) not in telegram_account.channels.all().values_list("channel_id", flat=True):
-            # TODO: message that the logged in user in not the owner of the channel
+            messages.warning(request, "You are not the owner of the channel")
             return redirect("marketing:dashboard")
         # get all members ids
         members_ids = Member.objects.all().values_list("member_id", flat=True)
@@ -314,10 +319,11 @@ def invite_members_to_channel(request):
 
         if task_result:
             # sucess message that members are invited
+            messages.success(request, "Members are invited successfully")
             return redirect("marketing:dashboard")
         return redirect("marketing:dashboard")
 
-
+@login_required(login_url="marketing:setup")
 def send_message(request, channel_id):
     if request.method == "POST":
         message = request.POST.get('message')
@@ -333,14 +339,15 @@ def send_message(request, channel_id):
         )
         task_result = app.AsyncResult(result.task_id).get()
         if task_result:
-            # TODO: message that the message is sent successfully
+            messages.success(request, "Message sent successfully")
             return redirect("marketing:dashboard")
         else:
-            # TODO: message that the message is not sent
+            messages.error(request, "Message not sent")
             return redirect("marketing:send-message", channel_id=channel_id)
 
     return render(request, 'marketing/send-message.html', {'channel_id': channel_id})
 
+@login_required(login_url="marketing:setup")
 def request_to_join_channel(request):
     # Not implemented yet
     if request.method == "POST":
@@ -357,8 +364,57 @@ def request_to_join_channel(request):
         task_result = app.AsyncResult(task.task_id).get()
         if task_result:
             telegram_account.channels.add(Channel.objects.get(channel_id=channel_id))
-            # TODO: message that the request is sent successfully
+            messages.success(request, "Request sent successfully")
             return redirect("marketing:dashboard")
         else:
-            # TODO: message that the request is not sent
+            messages.error(request, "Request not sent")
             return redirect("marketing:dashboard")
+
+@login_required(login_url="marketing:setup")
+def send_message_to_all_member(request):
+    if request.method == "POST":
+        message = request.POST.get('message')
+        telegram_account = TelegramAccount.objects.filter(username=request.user.username).first()
+        members_id = Member.objects.all().values_list("member_id", flat=True)
+        print(members_id)
+        result = task_send_message_to_all_members.apply_async(
+            args=[
+                telegram_account.phone_number,
+                telegram_account.api_hash,
+                telegram_account.api_id,
+                list(members_id),
+                message,
+            ]
+        )
+        # to track the task's status and result later if needed.
+        request.session['task_id'] = result.id
+        messages.success(request, "Message are sending to all members..")
+        return redirect("marketing:dashboard")
+        # task_result = app.AsyncResult(result.task_id).get()
+        # if task_result:
+        #     messages.success(request, "Message sent successfully")
+        #     return redirect("marketing:dashboard")
+        # else:
+        #     messages.error(request, "Message not sent")
+        #     return redirect("marketing:send-message-to-all")
+    else:
+        members_count = Member.objects.count()
+        duration = 12 * members_count / 60
+        return render(request, 'marketing/send-message-to-all.html', {'members_count': members_count, 'duration': duration})
+
+
+@login_required(login_url="marketing:setup")
+def task_status(request, task_id):
+    result = app.AsyncResult(task_id)
+    if result.ready():
+        task_result = result.get()
+        if task_result:
+            messages.success(request, "Message sent successfully")
+            # request.session.pop('task_id', None)
+            return redirect("marketing:dashboard")
+        else:
+            messages.error(request, "Message not sent")
+            return redirect("marketing:send-message-to-all")
+    else:
+        messages.warning(request, "Task is not ready yet")
+        return redirect("marketing:dashboard")
